@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "*.icc": "cpp",
+    "OrlovStyle.C": "cpp",
+    "rootlogon.C": "cpp"
+  }
+}
