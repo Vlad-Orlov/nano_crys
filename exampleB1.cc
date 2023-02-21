@@ -64,6 +64,12 @@ int main(int argc,char** argv)
   auto* runManager =
     G4RunManagerFactory::CreateRunManager(G4RunManagerType::Default);
 
+  G4int nThreads = 3;
+  
+	#ifdef G4MULTITHREADED
+	  if(nThreads > 0) runManager->SetNumberOfThreads(nThreads);
+	#endif
+
   // Set mandatory initialization classes
   //
   // Detector construction
@@ -80,7 +86,7 @@ int main(int argc,char** argv)
 
   opticalParams->SetWLSTimeProfile("delta");
 
-  opticalParams->SetScintYieldFactor(1.0);
+  opticalParams->SetScintYieldFactor(0.9);
   opticalParams->SetScintExcitationRatio(0.0);
   opticalParams->SetScintTrackSecondariesFirst(true);
   opticalParams->SetScintEnhancedTimeConstants(true);
