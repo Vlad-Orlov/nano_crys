@@ -20,7 +20,7 @@
 /gun/particle gamma
 /gun/energy 10 keV
 #
-/detector/setCapSize 0.1 mm 
+#/detector/setCapSize 0.1 mm 
 /run/beamOn 10000
 # 
 # proton 210 MeV to the direction (0.,0.,1.)
