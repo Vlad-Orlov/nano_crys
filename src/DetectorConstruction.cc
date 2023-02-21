@@ -481,16 +481,16 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   {
     for (int j = 0; j < N; j++)
     {
-      physNC = new G4PVPlacement(0, // no rotation
-                                 G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                                               (wafer_dy - fNC_dy) / 2.,
-                                               -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
-                                 logicNC,                                                                                       // its logical volume
-                                 "NC",                                                                                          // its name
-                                 logicWafer,                                                                                    // its mother  volume
-                                 false,                                                                                         // no boolean operation
-                                 i + j,                                                                                         // copy number
-                                 checkOverlaps);                                                                                // overlaps checking
+      // physNC = new G4PVPlacement(0, // no rotation
+      //                            G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+      //                                          (wafer_dy - fNC_dy) / 2.,
+      //                                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+      //                            logicNC,                                                                                       // its logical volume
+      //                            "NC",                                                                                          // its name
+      //                            logicWafer,                                                                                    // its mother  volume
+      //                            false,                                                                                         // no boolean operation
+      //                            i + j,                                                                                         // copy number
+      //                            checkOverlaps);                                                                                // overlaps checking
     }
   }
 
@@ -505,16 +505,16 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
                           NC_mat,   // its material
                           "capNC"); // its name
 
-  // physNC = new G4PVPlacement(0, // no rotation
-  //                            G4ThreeVector(0,
-  //                                          (wafer_dy + cap_thickness) / 2.,
-  //                                          0), // at position
-  //                            logicCapNC,       // its logical volume
-  //                            "capNC",          // its name
-  //                            logicWorld,       // its mother  volume
-  //                            false,            // no boolean operation
-  //                            0,                // copy number
-  //                            checkOverlaps);   // overlaps checking
+  physNC = new G4PVPlacement(0, // no rotation
+                             G4ThreeVector(0,
+                                           (wafer_dy + cap_thickness) / 2.,
+                                           0), // at position
+                             logicCapNC,       // its logical volume
+                             "capNC",          // its name
+                             logicWorld,       // its mother  volume
+                             false,            // no boolean operation
+                             0,                // copy number
+                             checkOverlaps);   // overlaps checking
 
   //
   // always return the physical World

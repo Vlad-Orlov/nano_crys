@@ -56,7 +56,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     = particleTable->FindParticle(particleName="gamma");
   fParticleGun->SetParticleDefinition(particle);
   fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,-1.,0.));
-  fParticleGun->SetParticleEnergy(10 * keV);
+  fParticleGun->SetParticleEnergy(50 * keV);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

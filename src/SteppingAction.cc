@@ -90,7 +90,7 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
   if (isPhoton && 
      ((prevolume->GetName() == "NC") || (prevolume->GetName() == "capNC")) && 
      (postvolume->GetName() == "Wafer") ){
-    G4cout << "Copy number is: " << prevolume->GetCopyNo() << G4endl;
+    // G4cout << "Copy number is: " << prevolume->GetCopyNo() << G4endl;
     man->FillH1(2, step->GetTrack()->GetKineticEnergy());
     man->FillNtupleDColumn(0,0, step->GetTrack()->GetKineticEnergy());
     man->FillNtupleIColumn(0,1,prevolume->GetCopyNo());
