@@ -4,11 +4,13 @@
 # or interactively: Idle> /control/execute run1.mac
 #
 # Change the default number of workers (in multi-threading mode) 
-#/run/numberOfThreads 4
+/run/numberOfThreads 10
 #
 
 # Initialize kernel
 /run/initialize
+/analysis/setFileName ./wls_3_photon.root
+
 #
 /control/verbose 2
 #/run/verbose 2
@@ -21,7 +23,7 @@
 /gun/energy 10 keV
 #
 #/detector/setCapSize 1 mm 
-/run/beamOn 100
+/run/beamOn 1000000
 # 
 # proton 210 MeV to the direction (0.,0.,1.)
 #

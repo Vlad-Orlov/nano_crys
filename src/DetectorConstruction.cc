@@ -374,6 +374,12 @@ void DetectorConstruction::DefineMaterials()
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 20. * ns);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD1", 1.0); 
 
+// Re-emition section
+  CsPbBr3_mpt->AddProperty("WLSABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
+  CsPbBr3_mpt->AddProperty("WLSCOMPONENT", CsPbBr3_em_en, CsPbBr3_em);
+  CsPbBr3_mpt->AddConstProperty("WLSMEANNUMBERPHOTONS", 3);
+  CsPbBr3_mpt->AddConstProperty("WLSTIMECONSTANT", 0.5 * ns);
+
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
 }
 
