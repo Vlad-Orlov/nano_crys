@@ -1,0 +1,9 @@
+/run/initialize
+
+/control/verbose 2
+/run/verbose 2
+/tracking/verbose 2
+
+/gun/particle opticalphoton
+/gun/energy 2.5 eV
+/run/beamOn 1

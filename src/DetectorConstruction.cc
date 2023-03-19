@@ -368,7 +368,7 @@ void DetectorConstruction::DefineMaterials()
   CsPbBr3_mpt = new G4MaterialPropertiesTable();
   CsPbBr3_mpt->AddProperty("SCINTILLATIONCOMPONENT1", CsPbBr3_em_en, CsPbBr3_em);
   CsPbBr3_mpt->AddProperty("RINDEX", CsPbBr3_em_en, std::vector<G4double>(CsPbBr3_em_en.size(), 1.8));
-  CsPbBr3_mpt->AddProperty("ABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
+  // CsPbBr3_mpt->AddProperty("ABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD", 20000. / MeV);
   CsPbBr3_mpt->AddConstProperty("RESOLUTIONSCALE", 1.0);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 20. * ns);
@@ -377,7 +377,7 @@ void DetectorConstruction::DefineMaterials()
 // Re-emition section
   CsPbBr3_mpt->AddProperty("WLSABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
   CsPbBr3_mpt->AddProperty("WLSCOMPONENT", CsPbBr3_em_en, CsPbBr3_em);
-  CsPbBr3_mpt->AddConstProperty("WLSMEANNUMBERPHOTONS", 3);
+  CsPbBr3_mpt->AddConstProperty("WLSMEANNUMBERPHOTONS", 0.9);
   CsPbBr3_mpt->AddConstProperty("WLSTIMECONSTANT", 0.5 * ns);
 
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
@@ -487,16 +487,16 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   {
     for (int j = 0; j < N; j++)
     {
-      physNC = new G4PVPlacement(0, // no rotation
-                                 G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                                               (wafer_dy - fNC_dy) / 2.,
-                                               -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
-                                 logicNC,                                                                                       // its logical volume
-                                 "NC",                                                                                          // its name
-                                 logicWafer,                                                                                    // its mother  volume
-                                 false,                                                                                         // no boolean operation
-                                 i + j,                                                                                         // copy number
-                                 checkOverlaps);                                                                                // overlaps checking
+      // physNC = new G4PVPlacement(0, // no rotation
+      //                            G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+      //                                          (wafer_dy - fNC_dy) / 2.,
+      //                                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+      //                            logicNC,                                                                                       // its logical volume
+      //                            "NC",                                                                                          // its name
+      //                            logicWafer,                                                                                    // its mother  volume
+      //                            false,                                                                                         // no boolean operation
+      //                            i + j,                                                                                         // copy number
+      //                            checkOverlaps);                                                                                // overlaps checking
     }
   }
 
@@ -511,16 +511,16 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
                           NC_mat,   // its material
                           "capNC"); // its name
 
-  // physNC = new G4PVPlacement(0, // no rotation
-  //                            G4ThreeVector(0,
-  //                                          (wafer_dy + cap_thickness) / 2.,
-  //                                          0), // at position
-  //                            logicCapNC,       // its logical volume
-  //                            "capNC",          // its name
-  //                            logicWorld,       // its mother  volume
-  //                            false,            // no boolean operation
-  //                            0,                // copy number
-  //                            checkOverlaps);   // overlaps checking
+  physNC = new G4PVPlacement(0, // no rotation
+                             G4ThreeVector(0,
+                                           (wafer_dy + cap_thickness) / 2.,
+                                           0), // at position
+                             logicCapNC,       // its logical volume
+                             "capNC",          // its name
+                             logicWorld,       // its mother  volume
+                             false,            // no boolean operation
+                             0,                // copy number
+                             checkOverlaps);   // overlaps checking
 
   //
   // always return the physical World

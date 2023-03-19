@@ -81,6 +81,28 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
   G4bool isPhoton = step->GetTrack()->GetDynamicParticle()->GetParticleDefinition()
                     == G4OpticalPhoton::OpticalPhotonDefinition();
 
+  // if (isPhoton){
+  //   G4cout << step->GetTrack()->GetCreatorProcess()->GetProcessName() << "\t";
+  //   G4cout << step->GetTrack()->GetCurrentStepNumber() << "\t";
+  //   G4cout << step->GetPostStepPoint()->GetProcessDefinedStep()->GetProcessName() << "\n";
+  // }
+
+  const std::vector<const G4Track*>* secondaries =
+                            step->GetSecondaryInCurrentStep();
+
+  for (auto sec : *secondaries) {
+    if (sec->GetDynamicParticle()->GetParticleDefinition() == G4OpticalPhoton::OpticalPhoton() ){
+      G4String creator_process = sec->GetCreatorProcess()->GetProcessName();
+      G4cout << "CP: " << creator_process << G4endl;
+    }
+  }
+
+   if (isPhoton && step->GetTrack()->GetCurrentStepNumber() == 1){
+    fEventAction->AddGeneratedPhoton();
+  }
+ 
+
+
   if (isPhoton && step->GetTrack()->GetCurrentStepNumber() == 1){
     fEventAction->AddGeneratedPhoton();
   }

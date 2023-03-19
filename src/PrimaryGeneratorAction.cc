@@ -88,9 +88,13 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   } 
 
 
-  G4double x = ( G4UniformRand() - 0.5 ) * waferSizeXY;
-  G4double z = ( G4UniformRand() - 0.5 ) * waferSizeXY;
-  G4double y = 7 * mm;
+  // G4double x = ( G4UniformRand() - 0.5 ) * waferSizeXY;
+  // G4double z = ( G4UniformRand() - 0.5 ) * waferSizeXY;
+  // G4double y = 7 * mm;
+
+  G4double x = 0 * mm; //( G4UniformRand() - 0.5 ) * waferSizeXY;
+  G4double z = 0 * mm; //( G4UniformRand() - 0.5 ) * waferSizeXY;
+  G4double y = 3 * mm;
 
   fParticleGun->SetParticlePosition(G4ThreeVector(x,y,z));
   fParticleGun->GeneratePrimaryVertex(anEvent);
