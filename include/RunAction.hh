@@ -53,10 +53,12 @@ class RunAction : public G4UserRunAction
     virtual void   EndOfRunAction(const G4Run*);
 
     void AddEdep (G4double edep); 
+    void AddTotalPhotons (G4int Nphotons);
 
   private:
     G4Accumulable<G4double> fEdep;
     G4Accumulable<G4double> fEdep2;
+    G4Accumulable<G4int> fTotalPhotons;
 };
 
 #endif

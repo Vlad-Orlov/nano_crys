@@ -45,7 +45,8 @@
 RunAction::RunAction()
 : G4UserRunAction(),
   fEdep(0.),
-  fEdep2(0.)
+  fEdep2(0.),
+  fTotalPhotons(0)
 { 
   // add new units for dose
   // 
@@ -63,6 +64,7 @@ RunAction::RunAction()
   G4AccumulableManager* accumulableManager = G4AccumulableManager::Instance();
   accumulableManager->RegisterAccumulable(fEdep);
   accumulableManager->RegisterAccumulable(fEdep2); 
+  accumulableManager->RegisterAccumulable(fTotalPhotons); 
 
   G4AnalysisManager* man = G4AnalysisManager::Instance();
   man->SetFileName("nc_photons");
@@ -72,13 +74,18 @@ RunAction::RunAction()
   man->CreateH1("0","Edep in absorber", 100, 0., 800*MeV);
   man->CreateH1("1","Edep in gap", 100, 0., 100*MeV);
   man->CreateH1("2","Photon energy", 1000, 0., 5*eV);
-  man->CreateH1("3","Number of photons", 1000, 0., 1000);
-  man->CreateH1("4","Number of gammas", 1000, 0., 1000);
+  man->CreateH1("3","Number of photons", 50000, 0., 50000);
+  man->CreateH1("4","Number of gammas", 1000, 0., 10000);
   man->CreateH1("5","Energy of gammas", 1000, 0., 200*keV);
-  man->CreateH1("6","Number of generated photons", 10000, 0., 10000);
-  man->CreateNtuple("Detected photons", "Detected photons");
-  man->CreateNtupleDColumn("Photon energy spectrum");
-  man->CreateNtupleIColumn("Number of photons per event");
+  man->CreateH1("6","Number of generated photons", 10000, 0., 100000);
+  man->CreateNtuple("Detected_photons", "Detected_photons");
+  man->CreateNtupleDColumn("Photon_energy_spectrum");
+  man->CreateNtupleIColumn("Number_of_photons_per_event");
+  man->CreateNtupleDColumn("x");
+  man->CreateNtupleDColumn("y");
+  man->CreateNtupleDColumn("z");
+  man->CreateNtupleIColumn("volumeId");
+  man->CreateNtupleIColumn("pid");
   man->FinishNtuple(0);
   // man->CreateH1("3", "NC absorption spectrum", 100, 0., 5*eV);
   // man->CreateH1("4", "NC absorption spectrum", 100, 0., 5*eV);
@@ -172,9 +179,14 @@ void RunAction::EndOfRunAction(const G4Run* run)
      << G4endl
      << " The run consists of " << nofEvents << " "<< runCondition
      << G4endl
-     << " Cumulated dose per run, in scoring volume : " 
-     << G4BestUnit(dose,"Dose") << " rms = " << G4BestUnit(rmsDose,"Dose")
-     << G4endl
+     << " Total number of optical photons detected : " 
+     << fTotalPhotons.GetValue() << G4endl
+     << "Pitch size : "
+     << detectorConstruction->GetPitchSize()/um << "um" << G4endl
+     << "Cap thickness : "
+     << detectorConstruction->GetCapSize()/um << "um" << G4endl
+     << "Fill Factor : "
+     << detectorConstruction->GetFillFactor() << G4endl
      << "------------------------------------------------------------"
      << G4endl
      << G4endl;
@@ -188,6 +200,10 @@ void RunAction::AddEdep(G4double edep)
   fEdep2 += edep*edep;
 }
 
+void RunAction::AddTotalPhotons(G4int Nphotons)
+{
+  fTotalPhotons += Nphotons;
+}
 
 
 

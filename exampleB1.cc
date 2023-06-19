@@ -124,12 +124,16 @@ int main(int argc,char** argv)
     UImanager->ApplyCommand(command+fileName);
   }
   else { 
+    std::stringstream fillFactor;   fillFactor   << std::fixed << std::setprecision(4) << detectorConstruction->GetFillFactor();
+    std::stringstream capThickness; capThickness << std::fixed << std::setprecision(2) << detectorConstruction->GetCapSize()/mm;
+    std::stringstream pitchSize;    pitchSize    << std::fixed << std::setprecision(2) << detectorConstruction->GetPitchSize()/um;
+    std::stringstream spacingSize;  spacingSize  << std::fixed << std::setprecision(2) << detectorConstruction->GetSpacingSize()/um;
     // interactive mode/vis/scene/add/text2D -.9 -.8 24 ! ! text
     UImanager->ApplyCommand("/control/execute init_vis.mac");
-    UImanager->ApplyCommand("/vis/scene/add/text2D -.9 -.8 24 ! ! Pitch: " + 
-            std::to_string(detectorConstruction->GetPitchSize()/um) + " um");
-    UImanager->ApplyCommand("/vis/scene/add/text2D -.9 -.9 24 ! ! Spacing: " + 
-            std::to_string(detectorConstruction->GetSpacingSize()/um) + " um");
+    // UImanager->ApplyCommand("/vis/scene/add/text2D -.9 -.6 18 ! ! Fill factor: " + fillFactor.str());
+    UImanager->ApplyCommand("/vis/scene/add/text2D -.9 -.7 18 ! ! Cap thickness: " + capThickness.str() + " mm");
+    UImanager->ApplyCommand("/vis/scene/add/text2D -.9 -.8 18 ! ! Pitch:   " + pitchSize.str() + " um");
+    UImanager->ApplyCommand("/vis/scene/add/text2D -.9 -.9 18 ! ! Spacing: " + spacingSize.str() + " um");
     ui->SessionStart();
     delete ui;
   }

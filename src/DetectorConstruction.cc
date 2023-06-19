@@ -40,6 +40,10 @@
 #include "G4PVPlacement.hh"
 #include "G4SystemOfUnits.hh"
 
+#include "G4LogicalBorderSurface.hh"
+#include "G4LogicalSkinSurface.hh"
+#include "G4OpticalSurface.hh"
+
 #include "G4GeometryManager.hh"
 #include "G4PhysicalVolumeStore.hh"
 #include "G4LogicalVolumeStore.hh"
@@ -368,17 +372,17 @@ void DetectorConstruction::DefineMaterials()
   CsPbBr3_mpt = new G4MaterialPropertiesTable();
   CsPbBr3_mpt->AddProperty("SCINTILLATIONCOMPONENT1", CsPbBr3_em_en, CsPbBr3_em);
   CsPbBr3_mpt->AddProperty("RINDEX", CsPbBr3_em_en, std::vector<G4double>(CsPbBr3_em_en.size(), 1.8));
-  // CsPbBr3_mpt->AddProperty("ABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
-  CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD", 20000. / MeV);
+  CsPbBr3_mpt->AddProperty("ABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
+  CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD", 20 / keV);
   CsPbBr3_mpt->AddConstProperty("RESOLUTIONSCALE", 1.0);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 20. * ns);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD1", 1.0); 
 
 // Re-emition section
-  CsPbBr3_mpt->AddProperty("WLSABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
-  CsPbBr3_mpt->AddProperty("WLSCOMPONENT", CsPbBr3_em_en, CsPbBr3_em);
-  CsPbBr3_mpt->AddConstProperty("WLSMEANNUMBERPHOTONS", 0.9);
-  CsPbBr3_mpt->AddConstProperty("WLSTIMECONSTANT", 0.5 * ns);
+  // CsPbBr3_mpt->AddProperty("WLSABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
+  // CsPbBr3_mpt->AddProperty("WLSCOMPONENT", CsPbBr3_em_en, CsPbBr3_em);
+  // CsPbBr3_mpt->AddConstProperty("WLSMEANNUMBERPHOTONS", 0.9);
+  // CsPbBr3_mpt->AddConstProperty("WLSTIMECONSTANT", 0.5 * ns);
 
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
 }
@@ -389,7 +393,7 @@ void DetectorConstruction::SetDefaults()
   fNC_dy = fNC_dx * 10.;
   fNC_dz = 100 * um;
   fInner_spacing = 100 * um;
-  fCapSize = 1 * mm;
+  fCapSize = 1. * mm;
 }
 
 G4VPhysicalVolume *DetectorConstruction::Construct()
@@ -478,27 +482,44 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
       new G4LogicalVolume(solidNC, // its solid
                           NC_mat,  // its material
                           "NC");   // its name
-  G4int N = std::floor(wafer_dx / (fNC_dx + fInner_spacing));
+  N = std::floor(wafer_dx / (fNC_dx + fInner_spacing));
 
   N = N - N % 2 - 1;
   G4double outer_spacing = (wafer_dx - N * (fNC_dx + fInner_spacing) + fInner_spacing) / 2.;
-
+  G4int crystal_index = 1;
   for (int i = 0; i < N; i++)
   {
     for (int j = 0; j < N; j++)
     {
-      // physNC = new G4PVPlacement(0, // no rotation
-      //                            G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-      //                                          (wafer_dy - fNC_dy) / 2.,
-      //                                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
-      //                            logicNC,                                                                                       // its logical volume
-      //                            "NC",                                                                                          // its name
-      //                            logicWafer,                                                                                    // its mother  volume
-      //                            false,                                                                                         // no boolean operation
-      //                            i + j,                                                                                         // copy number
-      //                            checkOverlaps);                                                                                // overlaps checking
+      col_phys_vect.push_back(new G4PVPlacement(0, // no rotation
+                                  G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+                                               (wafer_dy - fNC_dy) / 2.,
+                                               -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+                                  logicNC,                                                                                       // its logical volume
+                                  "NC",                                                                                          // its name
+                                  logicWafer,                                                                                    // its mother  volume
+                                  false,                                                                                         // no boolean operation
+                                  crystal_index++,                                                                                         // copy number
+                                  checkOverlaps));                                                                             // overlaps checking
     }
   }
+
+  // for (int i = 0; i < N-1; i++)
+  // {
+  //   for (int j = 0; j < N; j++)
+  //   {
+  //     physNC = new G4PVPlacement(0, // no rotation
+  //                                G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+  //                                              (wafer_dy - fNC_dy) / 2.,
+  //                                              -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+  //                                logicNC,                                                                                       // its logical volume
+  //                                "NC",                                                                                          // its name
+  //                                logicWafer,                                                                                    // its mother  volume
+  //                                false,                                                                                         // no boolean operation
+  //                                crystal_index++,                                                                                         // copy number
+  //                                checkOverlaps);                                                                                // overlaps checking
+  //   }
+  // }
 
   G4double cap_thickness = fCapSize;
 
@@ -527,6 +548,32 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   //
   return physWorld;
 }
+
+void DetectorConstruction::DefineSurfaces()
+{
+  //------------------------------------------------------------------------------
+  //----------------------------- Cap-Column surfaces -----------------------------
+  //------------------------------------------------------------------------------
+  G4OpticalSurface* Cap_Column_Surface = new G4OpticalSurface("Cap_Column_Surface");
+  Cap_Column_Surface->SetType(dielectric_dielectric);
+  Cap_Column_Surface->SetFinish(polished);
+  Cap_Column_Surface->SetModel(glisur);
+
+  const G4int num  = 3;
+  G4double pp[num] = {1.6*eV,3.44*eV, 5.0*eV};
+  G4double reflectivitySct[num] = {0.999,0.999, 0.999};
+
+  G4MaterialPropertiesTable *MPTsurf_Cap_Column = new G4MaterialPropertiesTable();
+  MPTsurf_Cap_Column->AddProperty("REFLECTIVITY", pp, reflectivitySct, num);
+  Cap_Column_Surface->SetMaterialPropertiesTable(MPTsurf_Cap_Column);
+
+  for(unsigned int pos = 0; pos<col_phys_vect.size(); pos++)
+  {
+    new G4LogicalBorderSurface( (std::string("Cap_Col_surface_")+std::to_string(pos)).c_str(), physNC, col_phys_vect[pos], Cap_Column_Surface);
+  }
+}
+
+
 
 void DetectorConstruction::SetPitch(G4double NC_dx)
 {

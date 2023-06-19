@@ -56,7 +56,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     = particleTable->FindParticle(particleName="gamma");
   fParticleGun->SetParticleDefinition(particle);
   fParticleGun->SetParticleMomentumDirection(G4ThreeVector(0.,-1.,0.));
-  fParticleGun->SetParticleEnergy(50 * keV);
+  fParticleGun->SetParticleEnergy(60 * keV);
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -92,9 +92,9 @@ void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
   // G4double z = ( G4UniformRand() - 0.5 ) * waferSizeXY;
   // G4double y = 7 * mm;
 
-  G4double x = 0 * mm; //( G4UniformRand() - 0.5 ) * waferSizeXY;
-  G4double z = 0 * mm; //( G4UniformRand() - 0.5 ) * waferSizeXY;
-  G4double y = 3 * mm;
+  G4double x = ( G4UniformRand() - 0.5 ) * waferSizeXY;
+  G4double z = ( G4UniformRand() - 0.5 ) * waferSizeXY;
+  G4double y = 5 * mm;
 
   fParticleGun->SetParticlePosition(G4ThreeVector(x,y,z));
   fParticleGun->GeneratePrimaryVertex(anEvent);

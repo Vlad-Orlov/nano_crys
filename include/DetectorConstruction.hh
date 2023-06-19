@@ -60,9 +60,10 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4double wafer_dy = 0.5 * cm;
     G4double wafer_dz = wafer_dx;
     // Functions to get geometry values
-    G4double GetPitchSize(){return fNC_dx;}
-    G4double GetSpacingSize(){return fInner_spacing;}
-    G4double GetCapSize(){return fCapSize;}
+    G4double GetPitchSize() const {return fNC_dx;}
+    G4double GetSpacingSize() const {return fInner_spacing;}
+    G4double GetCapSize() const {return fCapSize;}
+    G4double GetFillFactor() const {return (fNC_dx*fNC_dz*N*N / (wafer_dx*wafer_dz) );}
     G4LogicalVolume* GetScoringVolume() const { return fScoringVolume; }
 
   protected:
@@ -72,7 +73,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 
   
     void DefineMaterials();
-
+    void DefineSurfaces();
     DetectorMessenger* fDetectorMessenger;
   // Materials & elements
     G4Material* world_mat;
@@ -92,11 +93,12 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4double fNC_dz;
     G4double fCapSize;
     G4double fInner_spacing;
-
+    G4int N;
   // Volumes
     G4Box *capNC, *solidNC, *solidWafer, *solidWorld;
     G4LogicalVolume *logicCapNC, *logicNC, *logicWafer, *logicWorld;
     G4VPhysicalVolume *physNC, *physWafer, *physWorld;
+    std::vector<G4VPhysicalVolume*> col_phys_vect;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

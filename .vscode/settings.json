@@ -2,6 +2,12 @@
   "files.associations": {
     "*.icc": "cpp",
     "OrlovStyle.C": "cpp",
-    "rootlogon.C": "cpp"
+    "rootlogon.C": "cpp",
+    "vec2": "cpp",
+    "vec3": "cpp",
+    "vec4": "cpp",
+    "event": "cpp",
+    "point": "cpp",
+    "ostream": "cpp"
   }
 }
