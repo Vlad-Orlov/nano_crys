@@ -3,12 +3,13 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="http://cern.ch/2001/Schemas/GDML/gdml.xsd">
 
-<includes>
-  <gdmlFile ref="scintillation_spectra.gdml"/>
-  <gdmlFile ref="absorption_spectra.gdml"/>
-  <gdmlFile ref="elements.gdml"/>
-</includes>
+<!ENTITY elements SYSTEM "elements.xml">
+<!ENTITY scintillation_spectra SYSTEM "scintillation_spectra.xml">
+<!ENTITY absorption_spectra SYSTEM "absorption_spectra.xml">
 
+&elements;
+&scintillation_spectra;
+&absorption_spectra;
 
   <materials>
     <!--============================================================-->

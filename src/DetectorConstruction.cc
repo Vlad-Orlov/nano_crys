@@ -48,7 +48,7 @@
 #include "G4PhysicalVolumeStore.hh"
 #include "G4LogicalVolumeStore.hh"
 #include "G4SolidStore.hh"
-
+#include "G4GDMLParser.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 DetectorConstruction::DetectorConstruction()
@@ -385,6 +385,14 @@ void DetectorConstruction::DefineMaterials()
   // CsPbBr3_mpt->AddConstProperty("WLSTIMECONSTANT", 0.5 * ns);
 
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
+
+//TODO check that material from gdml produces the same result!
+  G4GDMLParser parser;
+  parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
+  
+  // Use NIST manager to retrieve the material
+  G4NistManager* nist = G4NistManager::Instance();
+  G4Material* CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
 }
 
 void DetectorConstruction::SetDefaults()
