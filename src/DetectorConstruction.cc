@@ -1,29 +1,3 @@
-//
-// ********************************************************************
-// * License and Disclaimer                                           *
-// *                                                                  *
-// * The  Geant4 software  is  copyright of the Copyright Holders  of *
-// * the Geant4 Collaboration.  It is provided  under  the terms  and *
-// * conditions of the Geant4 Software License,  included in the file *
-// * LICENSE and available at  http://cern.ch/geant4/license .  These *
-// * include a list of copyright holders.                             *
-// *                                                                  *
-// * Neither the authors of this software system, nor their employing *
-// * institutes,nor the agencies providing financial support for this *
-// * work  make  any representation or  warranty, express or implied, *
-// * regarding  this  software system or assume any liability for its *
-// * use.  Please see the license in the file  LICENSE  and URL above *
-// * for the full disclaimer and the limitation of liability.         *
-// *                                                                  *
-// * This  code  implementation is the result of  the  scientific and *
-// * technical work of the GEANT4 collaboration.                      *
-// * By using,  copying,  modifying or  distributing the software (or *
-// * any work based  on the software)  you  agree  to acknowledge its *
-// * use  in  resulting  scientific  publications,  and indicate your *
-// * acceptance of all terms of the Geant4 Software license.          *
-// ********************************************************************
-//
-//
 /// \file DetectorConstruction.cc
 /// \brief Implementation of the DetectorConstruction class
 
@@ -48,6 +22,7 @@
 #include "G4PhysicalVolumeStore.hh"
 #include "G4LogicalVolumeStore.hh"
 #include "G4SolidStore.hh"
+#include "G4MultiUnion.hh"
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -74,6 +49,257 @@ DetectorConstruction::~DetectorConstruction()
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+
+void DetectorConstruction::SetDefaults()
+{
+  fNC_dx = 100 * um;
+  fNC_dy = fNC_dx * 10.;
+  fNC_dz = fNC_dx;
+  fInner_spacing = fNC_dx;
+  fCapSize = 1 * mm;
+}
+
+G4VPhysicalVolume *DetectorConstruction::Construct()
+{
+
+  // Cleanup old geometry
+  G4GeometryManager::GetInstance()->OpenGeometry();
+  G4PhysicalVolumeStore::GetInstance()->Clean();
+  G4LogicalVolumeStore::GetInstance()->Clean();
+  G4SolidStore::GetInstance()->Clean();
+
+  // Get nist material manager
+  G4NistManager *nist = G4NistManager::Instance();
+
+  // Option to switch on/off checking of volumes overlaps
+  G4bool checkOverlaps = false;
+
+  //
+  // World
+  //
+  G4double world_sizeXY = 20. * cm; // 1.2*env_sizeXY;
+  G4double world_sizeZ = 20. * cm;  // 1.2*env_sizeZ;
+  world_mat = nist->FindOrBuildMaterial("G4_AIR");
+
+  G4Box *solidWorld =
+      new G4Box("World",                                                    // its name
+                0.5 * world_sizeXY, 0.5 * world_sizeXY, 0.5 * world_sizeZ); // its size
+
+  G4LogicalVolume *logicWorld =
+      new G4LogicalVolume(solidWorld, // its solid
+                          world_mat,  // its material
+                          "World");   // its name
+
+  G4VPhysicalVolume *physWorld =
+      new G4PVPlacement(0,               // no rotation
+                        G4ThreeVector(), // at (0,0,0)
+                        logicWorld,      // its logical volume
+                        "World",         // its name
+                        0,               // its mother  volume
+                        false,           // no boolean operation
+                        0,               // copy number
+                        checkOverlaps);  // overlaps checking
+
+
+  G4double wafer_dy = 5 * mm;
+
+  //
+  // Silicon wafer
+  //
+  wafer_mat = nist->FindOrBuildMaterial("G4_Si");
+  G4ThreeVector pos_wafer = G4ThreeVector(0, 0, 0);
+
+  G4Box *solidWafer =
+      new G4Box("Wafer",                                         // its name
+                0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz); // its size
+
+  G4LogicalVolume *logicWafer =
+      new G4LogicalVolume(solidWafer, // its solid
+                          wafer_mat,  // its material
+                          "Wafer");   // its name
+
+  physWafer = new G4PVPlacement(0,              // no rotation
+                                pos_wafer,      // at position
+                                logicWafer,     // its logical volume
+                                "Wafer",        // its name
+                                logicWorld,     // its mother  volume
+                                false,          // no boolean operation
+                                0,              // copy number
+                                checkOverlaps); // overlaps checking
+
+  // Set Shape2 as scoring volume
+  //
+  fScoringVolume = logicWafer;
+
+  //
+  // NC
+  //
+  NC_mat = CsPbBr3_mat;
+  G4double cap_thickness = fCapSize;
+  G4ThreeVector pos1 = G4ThreeVector(0, (wafer_dy - fNC_dy) / 2., 0);
+
+  solidNC =
+      new G4Box("NC", 0.5 * fNC_dx, 0.5 * fNC_dy, 0.5 * fNC_dz); // its size
+
+  logicNC =
+      new G4LogicalVolume(solidNC, // its solid
+                          NC_mat,  // its material
+                          "NC");   // its name
+  N = std::floor(wafer_dx / (fNC_dx + fInner_spacing));
+
+  N = N - N % 2 - 1;
+  G4double outer_spacing = (wafer_dx - N * (fNC_dx + fInner_spacing) + fInner_spacing) / 2.;
+  G4int crystal_index = 1;
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+      // col_phys_vect.push_back(new G4PVPlacement(0, // no rotation
+      //                             G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+      //                                          (wafer_dy - fNC_dy) / 2. - cap_thickness,
+      //                                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+      //                             logicNC,                                                                                       // its logical volume
+      //                             "NC_" + std::to_string(crystal_index),                                                                                          // its name
+      //                             logicWafer,                                                                                    // its mother  volume
+      //                             false,                                                                                         // no boolean operation
+      //                             crystal_index++,                                                                                         // copy number
+      //                             checkOverlaps));                                                                             // overlaps checking
+    }
+  }
+
+  // for (int i = 0; i < N-1; i++)
+  // {
+  //   for (int j = 0; j < N; j++)
+  //   {
+  //     physNC = new G4PVPlacement(0, // no rotation
+  //                                G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+  //                                              (wafer_dy - fNC_dy) / 2.,
+  //                                              -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+  //                                logicNC,                                                                                       // its logical volume
+  //                                "NC",                                                                                          // its name
+  //                                logicWafer,                                                                                    // its mother  volume
+  //                                false,                                                                                         // no boolean operation
+  //                                crystal_index++,                                                                                         // copy number
+  //                                checkOverlaps);                                                                                // overlaps checking
+  //   }
+  // }
+  capNC =
+      new G4Box("capNC",                                              // its name
+                0.5 * wafer_dx, 0.5 * cap_thickness, 0.5 * wafer_dz); // its size
+
+
+// Initialise a MultiUnion structure
+//
+G4MultiUnion* munion_solid = new G4MultiUnion("Boxes_Union");
+// Add the shapes to the structure
+//
+G4ThreeVector pos = G4ThreeVector(0,(wafer_dy - cap_thickness) / 2.,0);
+G4Transform3D tr = G4Transform3D(G4RotationMatrix(),pos);
+
+munion_solid->AddNode(*capNC, tr);                                                                            
+
+  for (int i = 0; i < N; i++)
+  {
+    for (int j = 0; j < 2*N-1; j++)
+    {
+      pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+                                          (wafer_dy - fNC_dy) / 2. - cap_thickness,
+                                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing*0 + fNC_dz) * j);
+      tr = G4Transform3D(G4RotationMatrix(),pos);
+      munion_solid->AddNode(*solidNC, tr);   
+    }
+  }
+
+  for (int i = 0; i < N - 1; i++)
+  {
+    for (int j = 0; j < N; j++)
+    {
+ 
+      pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+                                               (wafer_dy - fNC_dy) / 2. - cap_thickness,
+                                               -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position  
+
+      tr = G4Transform3D(G4RotationMatrix(),pos);
+      munion_solid->AddNode(*solidNC, tr); 
+    }
+  }
+//
+munion_solid->Voxelize();
+
+
+
+
+
+  logicCapNC =
+      new G4LogicalVolume(munion_solid,    // its solid
+                          NC_mat,   // its material
+                          "capNC"); // its name
+
+  physNC = new G4PVPlacement(0, // no rotation
+                             G4ThreeVector(0,
+                                           0,//(wafer_dy - 5.*cap_thickness) / 2.,
+                                           0), // at position
+                             logicCapNC,       // its logical volume
+                             "capNC",          // its name
+                             logicWafer,       // its mother  volume
+                             false,            // no boolean operation
+                             0,                // copy number
+                             checkOverlaps);   // overlaps checking
+
+  //
+  // always return the physical World
+  //
+  return physWorld;
+}
+
+void DetectorConstruction::DefineSurfaces()
+{
+  //------------------------------------------------------------------------------
+  //----------------------------- Cap-Column surfaces -----------------------------
+  //------------------------------------------------------------------------------
+  G4OpticalSurface* Cap_Column_Surface = new G4OpticalSurface("Cap_Column_Surface");
+  Cap_Column_Surface->SetType(dielectric_dielectric);
+  Cap_Column_Surface->SetFinish(polished);
+  Cap_Column_Surface->SetModel(glisur);
+
+  const G4int num  = 3;
+  G4double pp[num] = {1.6*eV,3.44*eV, 5.0*eV};
+  G4double reflectivitySct[num] = {0.999,0.999, 0.999};
+
+  G4MaterialPropertiesTable *MPTsurf_Cap_Column = new G4MaterialPropertiesTable();
+  MPTsurf_Cap_Column->AddProperty("REFLECTIVITY", pp, reflectivitySct, num);
+  Cap_Column_Surface->SetMaterialPropertiesTable(MPTsurf_Cap_Column);
+
+  for(unsigned int pos = 0; pos<col_phys_vect.size(); pos++)
+  {
+    new G4LogicalBorderSurface( (std::string("Cap_Col_surface_")+std::to_string(pos)).c_str(), physNC, col_phys_vect[pos], Cap_Column_Surface);
+  }
+}
+
+
+
+void DetectorConstruction::SetPitch(G4double NC_dx)
+{
+  fNC_dx = NC_dx;
+  fNC_dz = NC_dx;
+  G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+void DetectorConstruction::SetSpacing(G4double spacing)
+{
+  fInner_spacing = spacing;
+  G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+void DetectorConstruction::SetCapSize(G4double size)
+{
+  fCapSize = size;
+  G4RunManager::GetRunManager()->ReinitializeGeometry();
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
 void DetectorConstruction::DefineMaterials()
 {
   //***Material properties tables
@@ -242,34 +468,36 @@ void DetectorConstruction::DefineMaterials()
                                       8563.54921, 7524.39705, 5550.04421, 4858.75724, 4182.75147, 3490.12997, 2589.57367,
                                       2505.46577, 1982.36423, 1588.55547, 1550.86709, 1058.31116, 755.24954, 721.17315,
                                       626.17993, 603.07654, 379.10161, 530.28851, 398.08234, 518.48289, 396.79026,
-                                      477.04744, 366.10265, 385.96756, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                                      477.04744, 366.10265, 385.96756, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                      0.0, 0.0, 0.0, 0.0, 0.0};
 
   std::vector<G4double> CsPbBr3_abs_en = {
       1.90769231 * eV, 1.91063174 * eV, 1.91358025 * eV, 1.91653787 * eV, 1.91950464 * eV,
       1.92248062 * eV, 1.92546584 * eV, 1.92846034 * eV, 1.93146417 * eV, 1.93447738 * eV,
-      1.93750000 * eV, 1.94053208 * eV, 1.94357367 * eV, 1.9466248 * eV, 1.94968553 * eV,
+      1.93750000 * eV, 1.94053208 * eV, 1.94357367 * eV, 1.94662480 * eV, 1.94968553 * eV,
       1.95275591 * eV, 1.95583596 * eV, 1.95892575 * eV, 1.96202532 * eV, 1.96513471 * eV,
       1.96825397 * eV, 1.97138315 * eV, 1.97452229 * eV, 1.97767145 * eV, 1.98083067 * eV,
       1.98400000 * eV, 1.98717949 * eV, 1.99036918 * eV, 1.99356913 * eV, 1.99677939 * eV,
       2.00000000 * eV, 2.00323102 * eV, 2.00647249 * eV, 2.00972447 * eV, 2.01298701 * eV,
-      2.01626016 * eV, 2.01954397 * eV, 2.0228385 * eV, 2.02614379 * eV, 2.02945990 * eV,
+      2.01626016 * eV, 2.01954397 * eV, 2.02283850 * eV, 2.02614379 * eV, 2.02945990 * eV,
       2.03278689 * eV, 2.03612479 * eV, 2.03947368 * eV, 2.04283361 * eV, 2.04620462 * eV,
       2.04958678 * eV, 2.05298013 * eV, 2.05638474 * eV, 2.05980066 * eV, 2.06322795 * eV,
-      2.06666667 * eV, 2.07011686 * eV, 2.0735786 * eV, 2.07705193 * eV, 2.08053691 * eV,
+      2.06666667 * eV, 2.07011686 * eV, 2.07357860 * eV, 2.07705193 * eV, 2.08053691 * eV,
       2.08403361 * eV, 2.08754209 * eV, 2.09106239 * eV, 2.09459459 * eV, 2.09813875 * eV,
       2.10169492 * eV, 2.10526316 * eV, 2.10884354 * eV, 2.11243612 * eV, 2.11604096 * eV,
       2.11965812 * eV, 2.12328767 * eV, 2.12692967 * eV, 2.13058419 * eV, 2.13425129 * eV,
       2.13793103 * eV, 2.14162349 * eV, 2.14532872 * eV, 2.14904679 * eV, 2.15277778 * eV,
       2.15652174 * eV, 2.16027875 * eV, 2.16404887 * eV, 2.16783217 * eV, 2.17162872 * eV,
-      2.1754386 * eV, 2.17926186 * eV, 2.18309859 * eV, 2.18694885 * eV, 2.19081272 * eV,
+      2.17543860 * eV, 2.17926186 * eV, 2.18309859 * eV, 2.18694885 * eV, 2.19081272 * eV,
       2.19469027 * eV, 2.19858156 * eV, 2.20248668 * eV, 2.20640569 * eV, 2.21033868 * eV,
       2.21428571 * eV, 2.21824687 * eV, 2.22222222 * eV, 2.22621185 * eV, 2.23021583 * eV,
       2.23423423 * eV, 2.23826715 * eV, 2.24231465 * eV, 2.24637681 * eV, 2.25045372 * eV,
       2.25454545 * eV, 2.25865209 * eV, 2.26277372 * eV, 2.26691042 * eV, 2.27106227 * eV,
       2.27522936 * eV, 2.27941176 * eV, 2.28360958 * eV, 2.28782288 * eV, 2.29205176 * eV,
-      2.2962963 * eV, 2.30055659 * eV, 2.30483271 * eV, 2.30912477 * eV, 2.31343284 * eV,
+      2.29629630 * eV, 2.30055659 * eV, 2.30483271 * eV, 2.30912477 * eV, 2.31343284 * eV,
       2.31775701 * eV, 2.32209738 * eV, 2.32645403 * eV, 2.33082707 * eV, 2.33521657 * eV,
       2.33962264 * eV, 2.34404537 * eV, 2.34848485 * eV, 2.35294118 * eV, 2.35741445 * eV,
       2.36190476 * eV, 2.36641221 * eV, 2.37093690 * eV, 2.37547893 * eV, 2.38003839 * eV,
@@ -278,7 +506,7 @@ void DetectorConstruction::DefineMaterials()
       2.43137255 * eV, 2.43614931 * eV, 2.44094488 * eV, 2.44575937 * eV, 2.45059289 * eV,
       2.45544554 * eV, 2.46031746 * eV, 2.46520875 * eV, 2.47011952 * eV, 2.47504990 * eV,
       2.48000000 * eV, 2.48496994 * eV, 2.48995984 * eV, 2.49496982 * eV, 2.50000000 * eV,
-      2.50505051 * eV, 2.51012146 * eV, 2.51521298 * eV, 2.5203252 * eV, 2.52545825 * eV,
+      2.50505051 * eV, 2.51012146 * eV, 2.51521298 * eV, 2.52032520 * eV, 2.52545825 * eV,
       2.53061224 * eV, 2.53578732 * eV, 2.54098361 * eV, 2.54620123 * eV, 2.55144033 * eV,
       2.55670103 * eV, 2.56198347 * eV, 2.56728778 * eV, 2.57261411 * eV, 2.57796258 * eV,
       2.58333333 * eV, 2.58872651 * eV, 2.59414226 * eV, 2.59958071 * eV, 2.60504202 * eV,
@@ -289,33 +517,33 @@ void DetectorConstruction::DefineMaterials()
       2.72527473 * eV, 2.73127753 * eV, 2.73730684 * eV, 2.74336283 * eV, 2.74944568 * eV,
       2.75555556 * eV, 2.76169265 * eV, 2.76785714 * eV, 2.77404922 * eV, 2.78026906 * eV,
       2.78651685 * eV, 2.79279279 * eV, 2.79909707 * eV, 2.80542986 * eV, 2.81179138 * eV,
-      2.81818182 * eV, 2.82460137 * eV, 2.83105023 * eV, 2.8375286 * eV, 2.8440367 * eV,
+      2.81818182 * eV, 2.82460137 * eV, 2.83105023 * eV, 2.83752860 * eV, 2.84403670 * eV,
       2.85057471 * eV, 2.85714286 * eV, 2.86374134 * eV, 2.87037037 * eV, 2.87703016 * eV,
       2.88372093 * eV, 2.89044289 * eV, 2.89719626 * eV, 2.90398126 * eV, 2.91079812 * eV,
-      2.91764706 * eV, 2.9245283 * eV, 2.93144208 * eV, 2.93838863 * eV, 2.94536817 * eV,
-      2.95238095 * eV, 2.95942721 * eV, 2.96650718 * eV, 2.9736211 * eV, 2.98076923 * eV,
+      2.91764706 * eV, 2.92452830 * eV, 2.93144208 * eV, 2.93838863 * eV, 2.94536817 * eV,
+      2.95238095 * eV, 2.95942721 * eV, 2.96650718 * eV, 2.97362110 * eV, 2.98076923 * eV,
       2.98795181 * eV, 2.99516908 * eV, 3.00242131 * eV, 3.00970874 * eV, 3.01703163 * eV,
       3.02439024 * eV, 3.03178484 * eV, 3.03921569 * eV, 3.04668305 * eV, 3.05418719 * eV,
-      3.0617284 * eV, 3.06930693 * eV, 3.07692308 * eV, 3.08457711 * eV, 3.09226933 * eV,
-      3.1 * eV, 3.10776942 * eV, 3.11557789 * eV, 3.12342569 * eV, 3.13131313 * eV,
-      3.13924051 * eV, 3.14720812 * eV, 3.15521628 * eV, 3.16326531 * eV, 3.1713555 * eV,
+      3.06172840 * eV, 3.06930693 * eV, 3.07692308 * eV, 3.08457711 * eV, 3.09226933 * eV,
+      3.10000000 * eV, 3.10776942 * eV, 3.11557789 * eV, 3.12342569 * eV, 3.13131313 * eV,
+      3.13924051 * eV, 3.14720812 * eV, 3.15521628 * eV, 3.16326531 * eV, 3.17135550 * eV,
       3.17948718 * eV, 3.18766067 * eV, 3.19587629 * eV, 3.20413437 * eV, 3.21243523 * eV,
-      3.22077922 * eV, 3.22916667 * eV, 3.23759791 * eV, 3.2460733 * eV, 3.25459318 * eV,
+      3.22077922 * eV, 3.22916667 * eV, 3.23759791 * eV, 3.24607330 * eV, 3.25459318 * eV,
       3.26315789 * eV, 3.27176781 * eV, 3.28042328 * eV, 3.28912467 * eV, 3.29787234 * eV,
       3.30666667 * eV, 3.31550802 * eV, 3.32439678 * eV, 3.33333333 * eV, 3.34231806 * eV,
-      3.35135135 * eV, 3.3604336 * eV, 3.36956522 * eV, 3.37874659 * eV, 3.38797814 * eV,
+      3.35135135 * eV, 3.36043360 * eV, 3.36956522 * eV, 3.37874659 * eV, 3.38797814 * eV,
       3.39726027 * eV, 3.40659341 * eV, 3.41597796 * eV, 3.42541436 * eV, 3.43490305 * eV,
-      3.44444444 * eV, 3.454039 * eV, 3.46368715 * eV, 3.47338936 * eV, 3.48314607 * eV,
+      3.44444444 * eV, 3.45403900 * eV, 3.46368715 * eV, 3.47338936 * eV, 3.48314607 * eV,
       3.49295775 * eV, 3.50282486 * eV, 3.51274788 * eV, 3.52272727 * eV, 3.53276353 * eV,
-      3.54285714 * eV, 3.5530086 * eV, 3.56321839 * eV, 3.57348703 * eV, 3.58381503 * eV,
-      3.5942029 * eV, 3.60465116 * eV, 3.61516035 * eV, 3.62573099 * eV, 3.63636364 * eV,
+      3.54285714 * eV, 3.55300860 * eV, 3.56321839 * eV, 3.57348703 * eV, 3.58381503 * eV,
+      3.59420290 * eV, 3.60465116 * eV, 3.61516035 * eV, 3.62573099 * eV, 3.63636364 * eV,
       3.64705882 * eV, 3.65781711 * eV, 3.66863905 * eV, 3.67952522 * eV, 3.69047619 * eV,
       3.70149254 * eV, 3.71257485 * eV, 3.72372372 * eV, 3.73493976 * eV, 3.74622356 * eV,
-      3.75757576 * eV, 3.76899696 * eV, 3.7804878 * eV, 3.79204893 * eV, 3.80368098 * eV,
+      3.75757576 * eV, 3.76899696 * eV, 3.78048780 * eV, 3.79204893 * eV, 3.80368098 * eV,
       3.81538462 * eV, 3.82716049 * eV, 3.83900929 * eV, 3.85093168 * eV, 3.86292835 * eV,
-      3.875 * eV, 3.88714734 * eV, 3.89937107 * eV, 3.91167192 * eV, 3.92405063 * eV,
+      3.87500000 * eV, 3.88714734 * eV, 3.89937107 * eV, 3.91167192 * eV, 3.92405063 * eV,
       3.93650794 * eV, 3.94904459 * eV, 3.96166134 * eV, 3.97435897 * eV, 3.98713826 * eV,
-      4. * eV, 4.01294498 * eV, 4.02597403 * eV, 4.03908795 * eV, 4.05228758 * eV,
+      4.00000000 * eV, 4.01294498 * eV, 4.02597403 * eV, 4.03908795 * eV, 4.05228758 * eV,
       4.06557377 * eV, 4.07894737 * eV, 4.09240924 * eV, 4.10596026 * eV, 4.11960133 * eV,
       4.13333333 * eV};
 
@@ -386,211 +614,3 @@ void DetectorConstruction::DefineMaterials()
 
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
 }
-
-void DetectorConstruction::SetDefaults()
-{
-  fNC_dx = 100 * um;
-  fNC_dy = fNC_dx * 10.;
-  fNC_dz = 100 * um;
-  fInner_spacing = 100 * um;
-  fCapSize = 1. * mm;
-}
-
-G4VPhysicalVolume *DetectorConstruction::Construct()
-{
-
-  // Cleanup old geometry
-  G4GeometryManager::GetInstance()->OpenGeometry();
-  G4PhysicalVolumeStore::GetInstance()->Clean();
-  G4LogicalVolumeStore::GetInstance()->Clean();
-  G4SolidStore::GetInstance()->Clean();
-
-  // Get nist material manager
-  G4NistManager *nist = G4NistManager::Instance();
-
-  // Option to switch on/off checking of volumes overlaps
-  G4bool checkOverlaps = false;
-
-  //
-  // World
-  //
-  G4double world_sizeXY = 20. * cm; // 1.2*env_sizeXY;
-  G4double world_sizeZ = 20. * cm;  // 1.2*env_sizeZ;
-  world_mat = nist->FindOrBuildMaterial("G4_AIR");
-
-  G4Box *solidWorld =
-      new G4Box("World",                                                    // its name
-                0.5 * world_sizeXY, 0.5 * world_sizeXY, 0.5 * world_sizeZ); // its size
-
-  G4LogicalVolume *logicWorld =
-      new G4LogicalVolume(solidWorld, // its solid
-                          world_mat,  // its material
-                          "World");   // its name
-
-  G4VPhysicalVolume *physWorld =
-      new G4PVPlacement(0,               // no rotation
-                        G4ThreeVector(), // at (0,0,0)
-                        logicWorld,      // its logical volume
-                        "World",         // its name
-                        0,               // its mother  volume
-                        false,           // no boolean operation
-                        0,               // copy number
-                        checkOverlaps);  // overlaps checking
-
-
-  G4double wafer_dy = 5 * mm;
-
-  //
-  // Silicon wafer
-  //
-  wafer_mat = nist->FindOrBuildMaterial("G4_Si");
-  G4ThreeVector pos_wafer = G4ThreeVector(0, 0, 0);
-
-  G4Box *solidWafer =
-      new G4Box("Wafer",                                         // its name
-                0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz); // its size
-
-  G4LogicalVolume *logicWafer =
-      new G4LogicalVolume(solidWafer, // its solid
-                          wafer_mat,  // its material
-                          "Wafer");   // its name
-
-  physWafer = new G4PVPlacement(0,              // no rotation
-                                pos_wafer,      // at position
-                                logicWafer,     // its logical volume
-                                "Wafer",        // its name
-                                logicWorld,     // its mother  volume
-                                false,          // no boolean operation
-                                0,              // copy number
-                                checkOverlaps); // overlaps checking
-
-  // Set Shape2 as scoring volume
-  //
-  fScoringVolume = logicWafer;
-
-  //
-  // NC
-  //
-  NC_mat = CsPbBr3_mat;
-
-  G4ThreeVector pos1 = G4ThreeVector(0, (wafer_dy - fNC_dy) / 2., 0);
-
-  solidNC =
-      new G4Box("NC", 0.5 * fNC_dx, 0.5 * fNC_dy, 0.5 * fNC_dz); // its size
-
-  logicNC =
-      new G4LogicalVolume(solidNC, // its solid
-                          NC_mat,  // its material
-                          "NC");   // its name
-  N = std::floor(wafer_dx / (fNC_dx + fInner_spacing));
-
-  N = N - N % 2 - 1;
-  G4double outer_spacing = (wafer_dx - N * (fNC_dx + fInner_spacing) + fInner_spacing) / 2.;
-  G4int crystal_index = 1;
-  for (int i = 0; i < N; i++)
-  {
-    for (int j = 0; j < N; j++)
-    {
-      col_phys_vect.push_back(new G4PVPlacement(0, // no rotation
-                                  G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                                               (wafer_dy - fNC_dy) / 2.,
-                                               -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
-                                  logicNC,                                                                                       // its logical volume
-                                  "NC",                                                                                          // its name
-                                  logicWafer,                                                                                    // its mother  volume
-                                  false,                                                                                         // no boolean operation
-                                  crystal_index++,                                                                                         // copy number
-                                  checkOverlaps));                                                                             // overlaps checking
-    }
-  }
-
-  // for (int i = 0; i < N-1; i++)
-  // {
-  //   for (int j = 0; j < N; j++)
-  //   {
-  //     physNC = new G4PVPlacement(0, // no rotation
-  //                                G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-  //                                              (wafer_dy - fNC_dy) / 2.,
-  //                                              -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
-  //                                logicNC,                                                                                       // its logical volume
-  //                                "NC",                                                                                          // its name
-  //                                logicWafer,                                                                                    // its mother  volume
-  //                                false,                                                                                         // no boolean operation
-  //                                crystal_index++,                                                                                         // copy number
-  //                                checkOverlaps);                                                                                // overlaps checking
-  //   }
-  // }
-
-  G4double cap_thickness = fCapSize;
-
-  capNC =
-      new G4Box("capNC",                                              // its name
-                0.5 * wafer_dx, 0.5 * cap_thickness, 0.5 * wafer_dz); // its size
-
-  logicCapNC =
-      new G4LogicalVolume(capNC,    // its solid
-                          NC_mat,   // its material
-                          "capNC"); // its name
-
-  physNC = new G4PVPlacement(0, // no rotation
-                             G4ThreeVector(0,
-                                           (wafer_dy + cap_thickness) / 2.,
-                                           0), // at position
-                             logicCapNC,       // its logical volume
-                             "capNC",          // its name
-                             logicWorld,       // its mother  volume
-                             false,            // no boolean operation
-                             0,                // copy number
-                             checkOverlaps);   // overlaps checking
-
-  //
-  // always return the physical World
-  //
-  return physWorld;
-}
-
-void DetectorConstruction::DefineSurfaces()
-{
-  //------------------------------------------------------------------------------
-  //----------------------------- Cap-Column surfaces -----------------------------
-  //------------------------------------------------------------------------------
-  G4OpticalSurface* Cap_Column_Surface = new G4OpticalSurface("Cap_Column_Surface");
-  Cap_Column_Surface->SetType(dielectric_dielectric);
-  Cap_Column_Surface->SetFinish(polished);
-  Cap_Column_Surface->SetModel(glisur);
-
-  const G4int num  = 3;
-  G4double pp[num] = {1.6*eV,3.44*eV, 5.0*eV};
-  G4double reflectivitySct[num] = {0.999,0.999, 0.999};
-
-  G4MaterialPropertiesTable *MPTsurf_Cap_Column = new G4MaterialPropertiesTable();
-  MPTsurf_Cap_Column->AddProperty("REFLECTIVITY", pp, reflectivitySct, num);
-  Cap_Column_Surface->SetMaterialPropertiesTable(MPTsurf_Cap_Column);
-
-  for(unsigned int pos = 0; pos<col_phys_vect.size(); pos++)
-  {
-    new G4LogicalBorderSurface( (std::string("Cap_Col_surface_")+std::to_string(pos)).c_str(), physNC, col_phys_vect[pos], Cap_Column_Surface);
-  }
-}
-
-
-
-void DetectorConstruction::SetPitch(G4double NC_dx)
-{
-  fNC_dx = NC_dx;
-  fNC_dz = NC_dx;
-  G4RunManager::GetRunManager()->ReinitializeGeometry();
-}
-
-void DetectorConstruction::SetSpacing(G4double spacing)
-{
-  fInner_spacing = spacing;
-  G4RunManager::GetRunManager()->ReinitializeGeometry();
-}
-
-void DetectorConstruction::SetCapSize(G4double size)
-{
-  fCapSize = size;
-  G4RunManager::GetRunManager()->ReinitializeGeometry();
-}
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
