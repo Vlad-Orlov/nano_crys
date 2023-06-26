@@ -61,6 +61,7 @@ foreach(_script ${EXAMPLEB1_SCRIPTS})
     )
 endforeach()
 
+file(COPY ./compact/ DESTINATION ${PROJECT_BINARY_DIR}/compact)
 #----------------------------------------------------------------------------
 # For internal Geant4 use - but has no effect if you build this
 # example standalone
