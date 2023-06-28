@@ -1,3 +1,6 @@
+/// \file DetectorMessenger.hh
+/// \brief Definition of the DetectorMessenger class
+
 #ifndef DetectorMessenger_h
 #define DetectorMessenger_h 1
 
