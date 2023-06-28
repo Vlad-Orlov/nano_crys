@@ -302,15 +302,15 @@ void DetectorConstruction::SetCapSize(G4double size)
 
 void DetectorConstruction::DefineMaterials()
 {
-  //***Material properties tables
-//TODO check that material from gdml produces the same result!
-  G4GDMLParser parser;
-  parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
-  G4cout << *(G4Material::GetMaterialTable() ) << G4endl;
+//   //***Material properties tables
+// //TODO check that material from gdml produces the same result!
+//   G4GDMLParser parser;
+//   parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
+//   G4cout << *(G4Material::GetMaterialTable() ) << G4endl;
 
-  G4VPhysicalVolume* worldVolume = parser.GetWorldVolume();
-  CsPbBr3_gdml_mat = G4Material::GetMaterial("CsPbBr3");
-    // CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
+//   G4VPhysicalVolume* worldVolume = parser.GetWorldVolume();
+//   CsPbBr3_gdml_mat = G4Material::GetMaterial("CsPbBr3");
+//     // CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
 
 
   G4NistManager *man = G4NistManager::Instance();
