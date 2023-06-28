@@ -7,6 +7,7 @@
 <!ENTITY scintillation_spectra SYSTEM "scintillation_spectra.xml">
 <!ENTITY absorption_spectra SYSTEM "absorption_spectra.xml">
 
+<define/>
 &elements;
 &scintillation_spectra;
 &absorption_spectra;
@@ -24,13 +25,16 @@
     <material name="CsPbBr3" formula="CsPbBr3">
       <D value="4.55" unit="g/cm3" />
 
-      <composite n="1" ref="Cesium" />
-      <composite n="1" ref="Lead" />
-      <composite n="3" ref="Bromine" />
+      <composite n="1" ref="Cs" />
+      <composite n="1" ref="Pb" />
+      <composite n="3" ref="Br" />
 
       <property name="SCINTILLATION" ref="SCINTILLATION_CsPbBr3"/>
-      <property name="ABSLENGTH" ref="ABSLENGTH_CsPbBr3"/>
+      <property name="ABSLENGTH"     ref="ABSLENGTH_CsPbBr3"/>
       <property name="RINDEX" coldim="2" values="1.9*eV  1.8  4.136*eV  1.8"/>/>
+      <property name="SCINTILLATIONYIELD"         value="20./keV"/>
+      <property name="RESOLUTIONSCALE"            value="1.0"/>
+      <property name="SCINTILLATIONTIMECONSTANT1" value="20.*ns"/>
     </material>
     <!--============================================================-->
     <material name="MAPbBr3" formula="MAPbBr3">

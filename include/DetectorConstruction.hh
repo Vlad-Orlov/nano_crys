@@ -31,6 +31,7 @@
 #define DetectorConstruction_h 1
 
 #include "G4VUserDetectorConstruction.hh"
+#include "SensitiveDetector.hh"
 #include "DetectorMessenger.hh"
 #include "globals.hh"
 #include "G4SystemOfUnits.hh"
@@ -74,6 +75,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
   
     void DefineMaterials();
     void DefineSurfaces();
+    // virtual void ConstructSDandField();
     DetectorMessenger* fDetectorMessenger;
   // Materials & elements
     G4Material* world_mat;
@@ -82,7 +84,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4Material* CsPbBr3_mat;
     G4Material* MAPbBr3_mat;
     G4Material* FAPbBr3_mat;
-
+    G4Material* CsPbBr3_gdml_mat;
     G4MaterialPropertiesTable* CsPbBr3_mpt;
     G4MaterialPropertiesTable* MAPbBr3_mpt;
     G4MaterialPropertiesTable* FAPbBr3_mpt;

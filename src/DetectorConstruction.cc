@@ -77,6 +77,15 @@ DetectorConstruction::~DetectorConstruction()
 void DetectorConstruction::DefineMaterials()
 {
   //***Material properties tables
+//TODO check that material from gdml produces the same result!
+  G4GDMLParser parser;
+  parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
+  G4cout << *(G4Material::GetMaterialTable() ) << G4endl;
+
+  G4VPhysicalVolume* worldVolume = parser.GetWorldVolume();
+  CsPbBr3_gdml_mat = G4Material::GetMaterial("CsPbBr3");
+    // CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
+
 
   G4NistManager *man = G4NistManager::Instance();
   G4bool isotopes = true;
@@ -373,10 +382,10 @@ void DetectorConstruction::DefineMaterials()
   CsPbBr3_mpt->AddProperty("SCINTILLATIONCOMPONENT1", CsPbBr3_em_en, CsPbBr3_em);
   CsPbBr3_mpt->AddProperty("RINDEX", CsPbBr3_em_en, std::vector<G4double>(CsPbBr3_em_en.size(), 1.8));
   CsPbBr3_mpt->AddProperty("ABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
-  CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD", 20 / keV);
+  CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD", 20.0 / keV);
   CsPbBr3_mpt->AddConstProperty("RESOLUTIONSCALE", 1.0);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 20. * ns);
-  CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD1", 1.0); 
+  // CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD1", 1.0); 
 
 // Re-emition section
   // CsPbBr3_mpt->AddProperty("WLSABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
@@ -386,13 +395,7 @@ void DetectorConstruction::DefineMaterials()
 
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
 
-//TODO check that material from gdml produces the same result!
-  G4GDMLParser parser;
-  parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
-  
-  // Use NIST manager to retrieve the material
-  G4NistManager* nist = G4NistManager::Instance();
-  G4Material* CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
+
 }
 
 void DetectorConstruction::SetDefaults()
@@ -458,7 +461,7 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
       new G4Box("Wafer",                                         // its name
                 0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz); // its size
 
-  G4LogicalVolume *logicWafer =
+  logicWafer =
       new G4LogicalVolume(solidWafer, // its solid
                           wafer_mat,  // its material
                           "Wafer");   // its name
@@ -480,6 +483,7 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   // NC
   //
   NC_mat = CsPbBr3_mat;
+  // NC_mat = CsPbBr3_gdml_mat;
 
   G4ThreeVector pos1 = G4ThreeVector(0, (wafer_dy - fNC_dy) / 2., 0);
 
@@ -581,7 +585,10 @@ void DetectorConstruction::DefineSurfaces()
   }
 }
 
-
+// void DetectorConstruction::ConstructSDandField(){
+//   SensitiveDetector *sensDet = new SensitiveDetector("SensitiveDetecotor");
+//   logicWafer->SetSensitiveDetector(sensDet);
+// }
 
 void DetectorConstruction::SetPitch(G4double NC_dx)
 {
@@ -591,7 +598,7 @@ void DetectorConstruction::SetPitch(G4double NC_dx)
 }
 
 void DetectorConstruction::SetSpacing(G4double spacing)
-{
+{ 
   fInner_spacing = spacing;
   G4RunManager::GetRunManager()->ReinitializeGeometry();
 }
