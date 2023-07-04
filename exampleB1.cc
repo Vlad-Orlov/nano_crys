@@ -74,7 +74,6 @@ int main(int argc,char** argv)
   //
   // Detector construction
   DetectorConstruction* detectorConstruction = new DetectorConstruction();
-
   runManager->SetUserInitialization(detectorConstruction);
 
   // Physics list

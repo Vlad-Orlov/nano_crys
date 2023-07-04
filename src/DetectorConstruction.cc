@@ -3,6 +3,7 @@
 
 #include "DetectorConstruction.hh"
 #include "DetectorMessenger.hh"
+#include "SensitiveDetector.hh"
 #include "G4RunManager.hh"
 #include "G4NistManager.hh"
 #include "G4Box.hh"
@@ -78,28 +79,28 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   //
   // World
   //
-  G4double world_sizeXY = 20. * cm; // 1.2*env_sizeXY;
-  G4double world_sizeZ = 20. * cm;  // 1.2*env_sizeZ;
+  G4double world_sizeXY = 20. * cm; 
+  G4double world_sizeZ = 20. * cm;  
   world_mat = nist->FindOrBuildMaterial("G4_AIR");
 
   G4Box *solidWorld =
-      new G4Box("World",                                                    // its name
-                0.5 * world_sizeXY, 0.5 * world_sizeXY, 0.5 * world_sizeZ); // its size
+      new G4Box("World",                                                    
+                0.5 * world_sizeXY, 0.5 * world_sizeXY, 0.5 * world_sizeZ); 
 
   G4LogicalVolume *logicWorld =
-      new G4LogicalVolume(solidWorld, // its solid
-                          world_mat,  // its material
-                          "World");   // its name
+      new G4LogicalVolume(solidWorld, 
+                          world_mat,  
+                          "World");   
 
   G4VPhysicalVolume *physWorld =
-      new G4PVPlacement(0,               // no rotation
-                        G4ThreeVector(), // at (0,0,0)
-                        logicWorld,      // its logical volume
-                        "World",         // its name
-                        0,               // its mother  volume
-                        false,           // no boolean operation
-                        0,               // copy number
-                        checkOverlaps);  // overlaps checking
+      new G4PVPlacement(0,               
+                        G4ThreeVector(), 
+                        logicWorld,      
+                        "World",         
+                        0,               
+                        false,           
+                        0,               
+                        checkOverlaps);  
 
 
   G4double wafer_dy = 5 * mm;
@@ -111,25 +112,24 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   G4ThreeVector pos_wafer = G4ThreeVector(0, 0, 0);
 
   G4Box *solidWafer =
-      new G4Box("Wafer",                                         // its name
-                0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz); // its size
+      new G4Box("Wafer",                                         
+                0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz); 
 
   G4LogicalVolume *logicWafer =
-      new G4LogicalVolume(solidWafer, // its solid
-                          wafer_mat,  // its material
-                          "Wafer");   // its name
+      new G4LogicalVolume(solidWafer, 
+                          wafer_mat,  
+                          "Wafer");  
 
-  physWafer = new G4PVPlacement(0,              // no rotation
-                                pos_wafer,      // at position
-                                logicWafer,     // its logical volume
-                                "Wafer",        // its name
-                                logicWorld,     // its mother  volume
-                                false,          // no boolean operation
-                                0,              // copy number
-                                checkOverlaps); // overlaps checking
+  physWafer = new G4PVPlacement(0,              
+                                pos_wafer,      
+                                logicWafer,     
+                                "Wafer",        
+                                logicWorld,     
+                                false,          
+                                0,              
+                                checkOverlaps); 
 
-  // Set Shape2 as scoring volume
-  //
+  // Set logicWafer as scoring volume
   fScoringVolume = logicWafer;
 
   //
@@ -139,17 +139,14 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   G4double cap_thickness = fCapSize;
   G4ThreeVector pos1 = G4ThreeVector(0, (wafer_dy - fNC_dy) / 2., 0);
 
-  solidNC =
-      new G4Box("NC", 0.5 * fNC_dx, 0.5 * fNC_dy, 0.5 * fNC_dz); // its size
+  solidNC = new G4Box("NC", 0.5 * fNC_dx, 0.5 * fNC_dy, 0.5 * fNC_dz); 
+  logicNC = new G4LogicalVolume(solidNC, NC_mat, "NC");
 
-  logicNC =
-      new G4LogicalVolume(solidNC, // its solid
-                          NC_mat,  // its material
-                          "NC");   // its name
   N = std::floor(wafer_dx / (fNC_dx + fInner_spacing));
-
   N = N - N % 2 - 1;
+
   G4double outer_spacing = (wafer_dx - N * (fNC_dx + fInner_spacing) + fInner_spacing) / 2.;
+
   G4int crystal_index = 1;
   for (int i = 0; i < N; i++)
   {
@@ -197,31 +194,37 @@ G4MultiUnion* munion_solid = new G4MultiUnion("Boxes_Union");
 G4ThreeVector pos = G4ThreeVector(0,(wafer_dy - cap_thickness) / 2.,0);
 G4Transform3D tr = G4Transform3D(G4RotationMatrix(),pos);
 
+G4bool invertedCols = false;
+G4int upperBound = invertedCols?(2*N-1):N;
+
 munion_solid->AddNode(*capNC, tr);                                                                            
 
   for (int i = 0; i < N; i++)
   {
-    for (int j = 0; j < 2*N-1; j++)
+    for (int j = 0; j < upperBound; j++)
     {
+      G4cout << "NC placed!!!" << i << " " << j << G4endl;
       pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                                          (wafer_dy - fNC_dy) / 2. - cap_thickness,
-                                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing*0 + fNC_dz) * j);
+                          (wafer_dy - fNC_dy) / 2. - cap_thickness,
+                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + ((invertedCols?0:fInner_spacing) + fNC_dz) * j);
       tr = G4Transform3D(G4RotationMatrix(),pos);
       munion_solid->AddNode(*solidNC, tr);   
     }
   }
 
-  for (int i = 0; i < N - 1; i++)
-  {
-    for (int j = 0; j < N; j++)
+  if(invertedCols){
+    for (int i = 0; i < N - 1; i++)
     {
- 
-      pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                                               (wafer_dy - fNC_dy) / 2. - cap_thickness,
-                                               -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position  
+      for (int j = 0; j < N; j++)
+      {
+        G4cout << "NC2 placed!!!" << i << " " << j << G4endl;
+        pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+                                                (wafer_dy - fNC_dy) / 2. - cap_thickness,
+                                                -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position  
 
-      tr = G4Transform3D(G4RotationMatrix(),pos);
-      munion_solid->AddNode(*solidNC, tr); 
+        tr = G4Transform3D(G4RotationMatrix(),pos);
+        munion_solid->AddNode(*solidNC, tr); 
+      }
     }
   }
 //
@@ -232,20 +235,18 @@ munion_solid->Voxelize();
 
 
   logicCapNC =
-      new G4LogicalVolume(munion_solid,    // its solid
-                          NC_mat,   // its material
-                          "capNC"); // its name
+      new G4LogicalVolume(munion_solid,    
+                          NC_mat,   
+                          "capNC"); 
 
-  physNC = new G4PVPlacement(0, // no rotation
-                             G4ThreeVector(0,
-                                           0,//(wafer_dy - 5.*cap_thickness) / 2.,
-                                           0), // at position
-                             logicCapNC,       // its logical volume
-                             "capNC",          // its name
-                             logicWafer,       // its mother  volume
-                             false,            // no boolean operation
-                             0,                // copy number
-                             checkOverlaps);   // overlaps checking
+  physNC = new G4PVPlacement(0, 
+                             G4ThreeVector(0,0,0), 
+                             logicCapNC,      
+                             "capNC",          
+                             logicWafer,       
+                             false,            
+                             0,                
+                             checkOverlaps);   
 
   //
   // always return the physical World
@@ -278,6 +279,10 @@ void DetectorConstruction::DefineSurfaces()
 }
 
 
+
+// void DetectorConstruction::ConstructSDandField(){
+//   SensitiveDetector *sensDet = new SensitiveDetector("sensDet", )
+// }
 
 void DetectorConstruction::SetPitch(G4double NC_dx)
 {
@@ -613,13 +618,6 @@ void DetectorConstruction::DefineMaterials()
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD", 20.0 / keV);
   CsPbBr3_mpt->AddConstProperty("RESOLUTIONSCALE", 1.0);
   CsPbBr3_mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 20. * ns);
-  // CsPbBr3_mpt->AddConstProperty("SCINTILLATIONYIELD1", 1.0); 
-
-// Re-emition section
-  // CsPbBr3_mpt->AddProperty("WLSABSLENGTH", CsPbBr3_abs_en, CsPbBr3_abs);
-  // CsPbBr3_mpt->AddProperty("WLSCOMPONENT", CsPbBr3_em_en, CsPbBr3_em);
-  // CsPbBr3_mpt->AddConstProperty("WLSMEANNUMBERPHOTONS", 0.9);
-  // CsPbBr3_mpt->AddConstProperty("WLSTIMECONSTANT", 0.5 * ns);
 
   CsPbBr3_mat->SetMaterialPropertiesTable(CsPbBr3_mpt);
 }

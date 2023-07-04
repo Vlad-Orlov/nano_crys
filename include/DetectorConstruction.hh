@@ -40,6 +40,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4double GetCapSize() const {return fCapSize;}
     G4double GetFillFactor() const {return (fNC_dx*fNC_dz*N*N / (wafer_dx*wafer_dz) );}
     G4LogicalVolume* GetScoringVolume() const { return fScoringVolume; }
+    // inline void SetEventAction(EventAction* evAct){ feventAction = evAct; };
 
   protected:
     G4LogicalVolume*  fScoringVolume;
@@ -75,6 +76,8 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4LogicalVolume *logicCapNC, *logicNC, *logicWafer, *logicWorld;
     G4VPhysicalVolume *physNC, *physWafer, *physWorld;
     std::vector<G4VPhysicalVolume*> col_phys_vect;
+
+    // EventAction* feventAction;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
