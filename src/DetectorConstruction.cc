@@ -51,7 +51,6 @@ DetectorConstruction::~DetectorConstruction()
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
-
 void DetectorConstruction::SetDefaults()
 {
   fNC_dx = 100 * um;
@@ -79,29 +78,28 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   //
   // World
   //
-  G4double world_sizeXY = 20. * cm; 
-  G4double world_sizeZ = 20. * cm;  
+  G4double world_sizeXY = 20. * cm;
+  G4double world_sizeZ = 20. * cm;
   world_mat = nist->FindOrBuildMaterial("G4_AIR");
 
   G4Box *solidWorld =
-      new G4Box("World",                                                    
-                0.5 * world_sizeXY, 0.5 * world_sizeXY, 0.5 * world_sizeZ); 
+      new G4Box("World",
+                0.5 * world_sizeXY, 0.5 * world_sizeXY, 0.5 * world_sizeZ);
 
   G4LogicalVolume *logicWorld =
-      new G4LogicalVolume(solidWorld, 
-                          world_mat,  
-                          "World");   
+      new G4LogicalVolume(solidWorld,
+                          world_mat,
+                          "World");
 
   G4VPhysicalVolume *physWorld =
-      new G4PVPlacement(0,               
-                        G4ThreeVector(), 
-                        logicWorld,      
-                        "World",         
-                        0,               
-                        false,           
-                        0,               
-                        checkOverlaps);  
-
+      new G4PVPlacement(0,
+                        G4ThreeVector(),
+                        logicWorld,
+                        "World",
+                        0,
+                        false,
+                        0,
+                        checkOverlaps);
 
   G4double wafer_dy = 5 * mm;
 
@@ -112,22 +110,22 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   G4ThreeVector pos_wafer = G4ThreeVector(0, 0, 0);
 
   G4Box *solidWafer =
-      new G4Box("Wafer",                                         
-                0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz); 
+      new G4Box("Wafer",
+                0.5 * wafer_dx, 0.5 * wafer_dy, 0.5 * wafer_dz);
 
   G4LogicalVolume *logicWafer =
-      new G4LogicalVolume(solidWafer, 
-                          wafer_mat,  
-                          "Wafer");  
+      new G4LogicalVolume(solidWafer,
+                          wafer_mat,
+                          "Wafer");
 
-  physWafer = new G4PVPlacement(0,              
-                                pos_wafer,      
-                                logicWafer,     
-                                "Wafer",        
-                                logicWorld,     
-                                false,          
-                                0,              
-                                checkOverlaps); 
+  physWafer = new G4PVPlacement(0,
+                                pos_wafer,
+                                logicWafer,
+                                "Wafer",
+                                logicWorld,
+                                false,
+                                0,
+                                checkOverlaps);
 
   // Set logicWafer as scoring volume
   fScoringVolume = logicWafer;
@@ -139,8 +137,7 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   G4double cap_thickness = fCapSize;
   G4ThreeVector pos1 = G4ThreeVector(0, (wafer_dy - fNC_dy) / 2., 0);
 
-  solidNC = new G4Box("NC", 0.5 * fNC_dx, 0.5 * fNC_dy, 0.5 * fNC_dz); 
-  logicNC = new G4LogicalVolume(solidNC, NC_mat, "NC");
+
 
   N = std::floor(wafer_dx / (fNC_dx + fInner_spacing));
   N = N - N % 2 - 1;
@@ -181,72 +178,76 @@ G4VPhysicalVolume *DetectorConstruction::Construct()
   //                                checkOverlaps);                                                                                // overlaps checking
   //   }
   // }
-  capNC =
-      new G4Box("capNC",                                              // its name
-                0.5 * wafer_dx, 0.5 * cap_thickness, 0.5 * wafer_dz); // its size
 
+  // Initialise a MultiUnion structure
+  //
+  G4MultiUnion *munion_solid = new G4MultiUnion("Boxes_Union");
+  // Add the shapes to the structure
+  //
+  G4ThreeVector pos = G4ThreeVector(0, (wafer_dy - cap_thickness) / 2., 0);
+  G4Transform3D tr = G4Transform3D(G4RotationMatrix(), pos);
 
-// Initialise a MultiUnion structure
-//
-G4MultiUnion* munion_solid = new G4MultiUnion("Boxes_Union");
-// Add the shapes to the structure
-//
-G4ThreeVector pos = G4ThreeVector(0,(wafer_dy - cap_thickness) / 2.,0);
-G4Transform3D tr = G4Transform3D(G4RotationMatrix(),pos);
+  G4bool invertedCols = false;
+  G4bool placeCap = true;
+  G4bool placeCol = true;
+  G4int upperBound = invertedCols ? (2 * N - 1) : N;
 
-G4bool invertedCols = false;
-G4int upperBound = invertedCols?(2*N-1):N;
-
-munion_solid->AddNode(*capNC, tr);                                                                            
-
-  for (int i = 0; i < N; i++)
+  if (placeCap)
   {
-    for (int j = 0; j < upperBound; j++)
-    {
-      G4cout << "NC placed!!!" << i << " " << j << G4endl;
-      pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                          (wafer_dy - fNC_dy) / 2. - cap_thickness,
-                          -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + ((invertedCols?0:fInner_spacing) + fNC_dz) * j);
-      tr = G4Transform3D(G4RotationMatrix(),pos);
-      munion_solid->AddNode(*solidNC, tr);   
-    }
+    solidNC = new G4Box("NC", 0.5 * fNC_dx, 0.5 * fNC_dy, 0.5 * fNC_dz);
+    logicNC = new G4LogicalVolume(solidNC, NC_mat, "NC");
+    capNC = new G4Box("capNC", 0.5 * wafer_dx, 0.5 * cap_thickness, 0.5 * wafer_dz); 
+    munion_solid->AddNode(*capNC, tr);
   }
 
-  if(invertedCols){
-    for (int i = 0; i < N - 1; i++)
+  if (placeCol)
+  {
+    for (int i = 0; i < N; i++)
     {
-      for (int j = 0; j < N; j++)
+      for (int j = 0; j < upperBound; j++)
       {
-        G4cout << "NC2 placed!!!" << i << " " << j << G4endl;
-        pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
-                                                (wafer_dy - fNC_dy) / 2. - cap_thickness,
-                                                -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position  
+        G4cout << "NC placed!!!" << i << " " << j << G4endl;
+        pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 0.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+                            (wafer_dy - fNC_dy) / 2. - cap_thickness * placeCap,
+                            -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + ((invertedCols ? 0 : fInner_spacing) + fNC_dz) * j);
+        tr = G4Transform3D(G4RotationMatrix(), pos);
+        munion_solid->AddNode(*solidNC, tr);
+      }
+    }
 
-        tr = G4Transform3D(G4RotationMatrix(),pos);
-        munion_solid->AddNode(*solidNC, tr); 
+    if (invertedCols)
+    {
+      for (int i = 0; i < N - 1; i++)
+      {
+        for (int j = 0; j < N; j++)
+        {
+          G4cout << "NC2 placed!!!" << i << " " << j << G4endl;
+          pos = G4ThreeVector(-0.5 * wafer_dx + outer_spacing + 1.5 * fNC_dx + (fInner_spacing + fNC_dx) * i,
+                              (wafer_dy - fNC_dy) / 2. - cap_thickness * placeCap,
+                              -0.5 * wafer_dz + outer_spacing + 0.5 * fNC_dz + (fInner_spacing + fNC_dz) * j), // at position
+
+              tr = G4Transform3D(G4RotationMatrix(), pos);
+          munion_solid->AddNode(*solidNC, tr);
+        }
       }
     }
   }
-//
-munion_solid->Voxelize();
-
-
-
-
+  //
+  munion_solid->Voxelize();
 
   logicCapNC =
-      new G4LogicalVolume(munion_solid,    
-                          NC_mat,   
-                          "capNC"); 
+      new G4LogicalVolume(munion_solid,
+                          NC_mat,
+                          "capNC");
 
-  physNC = new G4PVPlacement(0, 
-                             G4ThreeVector(0,0,0), 
-                             logicCapNC,      
-                             "capNC",          
-                             logicWafer,       
-                             false,            
-                             0,                
-                             checkOverlaps);   
+  physNC = new G4PVPlacement(0,
+                             G4ThreeVector(0, 0, 0),
+                             logicCapNC,
+                             "capNC",
+                             logicWafer,
+                             false,
+                             0,
+                             checkOverlaps);
 
   //
   // always return the physical World
@@ -259,26 +260,24 @@ void DetectorConstruction::DefineSurfaces()
   //------------------------------------------------------------------------------
   //----------------------------- Cap-Column surfaces -----------------------------
   //------------------------------------------------------------------------------
-  G4OpticalSurface* Cap_Column_Surface = new G4OpticalSurface("Cap_Column_Surface");
+  G4OpticalSurface *Cap_Column_Surface = new G4OpticalSurface("Cap_Column_Surface");
   Cap_Column_Surface->SetType(dielectric_dielectric);
   Cap_Column_Surface->SetFinish(polished);
   Cap_Column_Surface->SetModel(glisur);
 
-  const G4int num  = 3;
-  G4double pp[num] = {1.6*eV,3.44*eV, 5.0*eV};
-  G4double reflectivitySct[num] = {0.999,0.999, 0.999};
+  const G4int num = 3;
+  G4double pp[num] = {1.6 * eV, 3.44 * eV, 5.0 * eV};
+  G4double reflectivitySct[num] = {0.999, 0.999, 0.999};
 
   G4MaterialPropertiesTable *MPTsurf_Cap_Column = new G4MaterialPropertiesTable();
   MPTsurf_Cap_Column->AddProperty("REFLECTIVITY", pp, reflectivitySct, num);
   Cap_Column_Surface->SetMaterialPropertiesTable(MPTsurf_Cap_Column);
 
-  for(unsigned int pos = 0; pos<col_phys_vect.size(); pos++)
+  for (unsigned int pos = 0; pos < col_phys_vect.size(); pos++)
   {
-    new G4LogicalBorderSurface( (std::string("Cap_Col_surface_")+std::to_string(pos)).c_str(), physNC, col_phys_vect[pos], Cap_Column_Surface);
+    new G4LogicalBorderSurface((std::string("Cap_Col_surface_") + std::to_string(pos)).c_str(), physNC, col_phys_vect[pos], Cap_Column_Surface);
   }
 }
-
-
 
 // void DetectorConstruction::ConstructSDandField(){
 //   SensitiveDetector *sensDet = new SensitiveDetector("sensDet", )
@@ -307,16 +306,15 @@ void DetectorConstruction::SetCapSize(G4double size)
 
 void DetectorConstruction::DefineMaterials()
 {
-//   //***Material properties tables
-// //TODO check that material from gdml produces the same result!
-//   G4GDMLParser parser;
-//   parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
-//   G4cout << *(G4Material::GetMaterialTable() ) << G4endl;
+  //   //***Material properties tables
+  // //TODO check that material from gdml produces the same result!
+  //   G4GDMLParser parser;
+  //   parser.Read("./compact/materials.gdml", false); // false means don't validate against schema
+  //   G4cout << *(G4Material::GetMaterialTable() ) << G4endl;
 
-//   G4VPhysicalVolume* worldVolume = parser.GetWorldVolume();
-//   CsPbBr3_gdml_mat = G4Material::GetMaterial("CsPbBr3");
-//     // CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
-
+  //   G4VPhysicalVolume* worldVolume = parser.GetWorldVolume();
+  //   CsPbBr3_gdml_mat = G4Material::GetMaterial("CsPbBr3");
+  //     // CsPbBr3_gdml_mat = nist->FindOrBuildMaterial("CsPbBr3");
 
   G4NistManager *man = G4NistManager::Instance();
   G4bool isotopes = true;
@@ -382,9 +380,9 @@ void DetectorConstruction::DefineMaterials()
                                        58758.17736, 62234.07495, 64153.60048, 66125.00507, 68822.71663,
                                        72713.64676, 77330.88385, 82000.00000};
 
-  std::transform(FAPbBr3_abs.begin(), FAPbBr3_abs.end(), FAPbBr3_abs.begin(), 
-                 [](G4double value) -> G4double{return 1./value * cm;});
-
+  std::transform(FAPbBr3_abs.begin(), FAPbBr3_abs.end(), FAPbBr3_abs.begin(),
+                 [](G4double value) -> G4double
+                 { return 1. / value * cm; });
 
   std::vector<G4double> CsPbBr3_em_en = {1.77142857 * eV, 1.77396280 * eV, 1.77650430 * eV, 1.77905308 * eV, 1.7816092 * eV,
                                          1.78417266 * eV, 1.78674352 * eV, 1.78932179 * eV, 1.79190751 * eV, 1.79450072 * eV,
@@ -482,10 +480,10 @@ void DetectorConstruction::DefineMaterials()
                                       8563.54921, 7524.39705, 5550.04421, 4858.75724, 4182.75147, 3490.12997, 2589.57367,
                                       2505.46577, 1982.36423, 1588.55547, 1550.86709, 1058.31116, 755.24954, 721.17315,
                                       626.17993, 603.07654, 379.10161, 530.28851, 398.08234, 518.48289, 396.79026,
-                                      477.04744, 366.10265, 385.96756, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                      477.04744, 366.10265, 385.96756, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
-                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                       0.0, 0.0, 0.0, 0.0, 0.0};
 
   std::vector<G4double> CsPbBr3_abs_en = {
@@ -608,8 +606,9 @@ void DetectorConstruction::DefineMaterials()
                                        267549.43666, 273083.66634, 278678.48431, 284588.95983, 290553.29161, 296630.07327,
                                        302864.93304, 309173.59584, 315589.97116, 322013.82651};
 
-  std::transform(CsPbBr3_abs.begin(), CsPbBr3_abs.end(), CsPbBr3_abs.begin(), 
-                 [](G4double value) -> G4double{return 1./value * cm;});
+  std::transform(CsPbBr3_abs.begin(), CsPbBr3_abs.end(), CsPbBr3_abs.begin(),
+                 [](G4double value) -> G4double
+                 { return 1. / value * cm; });
 
   CsPbBr3_mpt = new G4MaterialPropertiesTable();
   CsPbBr3_mpt->AddProperty("SCINTILLATIONCOMPONENT1", CsPbBr3_em_en, CsPbBr3_em);

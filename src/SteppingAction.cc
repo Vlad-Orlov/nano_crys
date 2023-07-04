@@ -277,7 +277,7 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
     man->FillNtupleDColumn(0,4, step->GetPostStepPoint()->GetPosition().getZ());
     man->FillNtupleIColumn(0,5, prevolume->GetCopyNo());
     man->FillNtupleIColumn(0,6, step->GetTrack()->GetDynamicParticle()->
-                                      GetParticleDefinition()->GetPDGEncoding());
+                                     GetParticleDefinition()->GetPDGEncoding());
     man->AddNtupleRow(0);
     fEventAction->AddPhoton();
   }
